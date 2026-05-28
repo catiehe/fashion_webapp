@@ -1,0 +1,93 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  body {
+    background-color: #EAEFF5;
+    font-family: 'Hanken Grotesk', 'Helvetica Neue', Helvetica, Arial, sans-serif;
+    color: #212121;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  ::selection {
+    background-color: #212121;
+    color: #EAEFF5;
+  }
+
+  ::-webkit-scrollbar { width: 2px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: #212121; }
+}
+
+@layer components {
+  .material-symbols-outlined {
+    font-variation-settings: 'FILL' 0, 'wght' 300, 'GRAD' 0, 'opsz' 24;
+    vertical-align: middle;
+  }
+
+  .masonry-grid {
+    column-count: 1;
+    column-gap: 24px;
+  }
+
+  .masonry-item {
+    break-inside: avoid;
+    margin-bottom: 60px;
+  }
+
+  .ghost-typography {
+    color: #212121;
+    opacity: 0.15;
+    font-weight: 200;
+  }
+
+  .ghost-text {
+    color: transparent;
+    -webkit-text-stroke: 1px rgba(33, 33, 33, 0.1);
+  }
+
+  .ghost-number {
+    -webkit-text-stroke: 1px currentColor;
+    color: transparent;
+    opacity: 0.1;
+    line-height: 0.8;
+  }
+
+  .color-split {
+    color: #EAEFF5;
+  }
+
+  .asymmetric-typography {
+    text-indent: 15%;
+  }
+
+  .text-radical-display {
+    font-size: clamp(48px, 10vw, 160px);
+    line-height: 0.9;
+    letter-spacing: -0.04em;
+  }
+
+  .map-container {
+    height: calc(100vh - 88px);
+    min-height: 500px;
+  }
+}
+
+@media (min-width: 768px) {
+  .masonry-grid { column-count: 2; }
+  .asymmetric-typography { text-indent: 15%; }
+}
+
+@media (max-width: 768px) {
+  .asymmetric-typography { text-indent: 0; }
+}
+
+@media (min-width: 1024px) {
+  .masonry-grid { column-count: 3; }
+}
+
+@media (min-width: 1280px) {
+  .masonry-grid { column-count: 4; }
+}
