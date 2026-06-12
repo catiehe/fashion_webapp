@@ -267,9 +267,9 @@ export default function StoreDetail() {
           </h3>
           <div className="grid grid-cols-12 gap-gutter">
             {embeds.map((embed, idx) => (
-              <div key={idx} className="col-span-12 md:col-span-4 bg-pure-white rounded-xl overflow-hidden">
+              <div key={idx} className="col-span-12 md:col-span-6 lg:col-span-5 bg-pure-white rounded-xl overflow-hidden p-6">
                 <div
-                  className="w-full"
+                  className="w-full overflow-x-auto"
                   dangerouslySetInnerHTML={{ __html: embed.embedHtml }}
                 />
               </div>
