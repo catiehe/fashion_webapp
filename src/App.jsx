@@ -9,7 +9,7 @@ export default function App() {
     <Routes>
       <Route path="/" element={<Discovery />} />
       <Route path="/map" element={<StyleMap />} />
-      <Route path="/boutiques/the-archive" element={<StoreDetail />} />
+      <Route path="/store/:storeName" element={<StoreDetail />} />
       <Route path="/vintage" element={<VintageGuide />} />
     </Routes>
   )

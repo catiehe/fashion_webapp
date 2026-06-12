@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
-import { Link } from 'react-router-dom'
+import { useParams } from 'react-router-dom'
 import Navbar from '../components/Navbar'
+import { getStore } from '../sanity'
 
 const nearbyStores = [
   {
@@ -23,45 +24,45 @@ const nearbyStores = [
   },
 ]
 
-// Hardcoded TikTok video URLs for testing
-const tiktokVideos = [
-  'https://www.tiktok.com/@alon_cameron/video/7478135319326674222',
-  'https://www.tiktok.com/@abbeywwwww/video/7237225757716745518',
-  'https://www.tiktok.com/@graceannryu/video/7069145495758703918',
-]
-
 export default function StoreDetail() {
+  const { storeName } = useParams()
+  const [store, setStore] = useState(null)
+  const [loading, setLoading] = useState(true)
   const [embeds, setEmbeds] = useState([])
 
   useEffect(() => {
-    // Fetch TikTok oEmbed data for each video
-    const fetchEmbeds = async () => {
-      const embedsData = []
-      for (const url of tiktokVideos) {
-        try {
-          const response = await fetch(`https://www.tiktok.com/oembed?url=${encodeURIComponent(url)}`)
-          const data = await response.json()
-          embedsData.push({
-            html: data.html,
-            author: data.author_name,
-            title: data.title,
-            url: url,
-          })
-        } catch (error) {
-          console.error('Error fetching TikTok embed:', error)
-        }
-      }
-      setEmbeds(embedsData)
+    const fetchStore = async () => {
+      try {
+        const storeData = await getStore(storeName)
+        setStore(storeData)
 
-      // Load TikTok's embed script to render the embeds
+        if (storeData?.socialPosts) {
+          setEmbeds(storeData.socialPosts)
+
+          // Reload TikTok embed script after data loads
+          setTimeout(() => {
+            if (window.tiktok && window.tiktok.embed) {
+              window.tiktok.embed.process()
+            }
+          }, 500)
+        }
+      } catch (error) {
+        console.error('Error fetching store:', error)
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    fetchStore()
+
+    // Load TikTok's embed script
+    if (!window.tiktok) {
       const script = document.createElement('script')
       script.src = 'https://www.tiktok.com/embed.js'
       script.async = true
       document.body.appendChild(script)
     }
-
-    fetchEmbeds()
-  }, [])
+  }, [storeName])
 
   useEffect(() => {
     const observer = new IntersectionObserver(
@@ -150,32 +151,35 @@ export default function StoreDetail() {
         {/* Store Profile */}
         <section className="reveal-section px-edge-margin mt-section-gap">
           <div className="grid grid-cols-12 gap-gutter items-start border-t border-rich-black/10 pt-16">
-            <div className="col-span-12 md:col-span-7">
-              <div className="flex gap-4 mb-12">
-                <span className="px-4 py-1 border border-rich-black/20 text-label-caps uppercase tracking-tighter text-rich-black">02</span>
-                <span className="px-4 py-1 bg-pure-white text-label-caps uppercase tracking-tighter text-rich-black rounded-full text-xs">Vintage</span>
-                <span className="px-4 py-1 bg-pure-white text-label-caps uppercase tracking-tighter text-rich-black rounded-full text-xs">Designer</span>
-              </div>
-              <h1 className="font-headline-xl text-headline-xl mb-12 uppercase text-rich-black">The Archive</h1>
-              <p className="font-headline-md text-3xl max-w-3xl leading-relaxed text-rich-black/80">
-                A curated sanctuary in SoHo specializing in archival designer pieces and rare vintage finds that define the contemporary minimalist wardrobe.
-              </p>
-            </div>
-            <div className="col-span-12 md:col-span-4 md:col-start-9 space-y-16 mt-12 md:mt-0">
-              <div className="border-l-2 border-rich-black pl-8 py-2">
-                <p className="font-label-caps text-label-caps opacity-40 uppercase mb-4 tracking-widest text-rich-black">Address</p>
-                <p className="font-body-lg text-2xl text-rich-black">
-                  112 Greene St,<br />New York, NY 10012
-                </p>
-              </div>
-              <div className="border-l-2 border-rich-black pl-8 py-2">
-                <p className="font-label-caps text-label-caps opacity-40 uppercase mb-4 tracking-widest text-rich-black">Hours</p>
-                <p className="font-body-lg text-2xl text-rich-black">Daily: 11:00 AM — 7:00 PM</p>
-              </div>
-              <button className="w-full bg-rich-black text-pure-white py-6 rounded-full font-label-caps uppercase tracking-widest hover:opacity-90 transition-opacity text-lg">
-                Request Appointment
-              </button>
-            </div>
+            {store && (
+              <>
+                <div className="col-span-12 md:col-span-7">
+                  <div className="flex gap-4 mb-12">
+                    <span className="px-4 py-1 border border-rich-black/20 text-label-caps uppercase tracking-tighter text-rich-black">02</span>
+                    <span className="px-4 py-1 bg-pure-white text-label-caps uppercase tracking-tighter text-rich-black rounded-full text-xs">{store.neighborhood}</span>
+                  </div>
+                  <h1 className="font-headline-xl text-headline-xl mb-12 uppercase text-rich-black">{store.name}</h1>
+                  <p className="font-headline-md text-3xl max-w-3xl leading-relaxed text-rich-black/80">
+                    {store.description || 'Curated boutique experience in NYC'}
+                  </p>
+                </div>
+                <div className="col-span-12 md:col-span-4 md:col-start-9 space-y-16 mt-12 md:mt-0">
+                  <div className="border-l-2 border-rich-black pl-8 py-2">
+                    <p className="font-label-caps text-label-caps opacity-40 uppercase mb-4 tracking-widest text-rich-black">Address</p>
+                    <p className="font-body-lg text-2xl text-rich-black">
+                      {store.address}
+                    </p>
+                  </div>
+                  <div className="border-l-2 border-rich-black pl-8 py-2">
+                    <p className="font-label-caps text-label-caps opacity-40 uppercase mb-4 tracking-widest text-rich-black">Hours</p>
+                    <p className="font-body-lg text-2xl text-rich-black">{store.hours || 'Daily: 11:00 AM — 7:00 PM'}</p>
+                  </div>
+                  <button className="w-full bg-rich-black text-pure-white py-6 rounded-full font-label-caps uppercase tracking-widest hover:opacity-90 transition-opacity text-lg">
+                    Request Appointment
+                  </button>
+                </div>
+              </>
+            )}
           </div>
         </section>
 

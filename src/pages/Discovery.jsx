@@ -21,7 +21,7 @@ const cards = [
     tags: ['# CASHMERE', '# BESPOKE'],
     aspect: 'aspect-square',
     img: 'https://lh3.googleusercontent.com/aida-public/AB6AXuDN9NDKf_egDEKUN9-mu416qBMWpvwCzMAeW5mnWY6-2i2fN4NflUiAy29wJNjLfrXwxQ4i1-z0__-EbOyKr-zWmb1A2ysK-8Jg20EfPbWNHH0bVwqkxhJj6qjGUVS_4tfphIGDkhxmxv8Bsvg5Wg5HriSefKw-SfM72YxVJ_1WsT6P5A3nvrq4RJuf3-pOWW_EYGLYtQ18q-iEYvItkNRFonCoWJG-yMYli9YgfNG6Zg_KSpkR46KZCXWeDg8EaFxmmz5T3aSKnRc',
-    link: '/boutiques/the-archive',
+    link: '/store/Acne%20Studio',
   },
   {
     id: 3,
@@ -51,7 +51,7 @@ const cards = [
     tags: [],
     aspect: 'aspect-video',
     img: 'https://lh3.googleusercontent.com/aida-public/AB6AXuCcgUnj4fa9L2HvBc6LhWzQxZYUIbR8oFpcs6NPDC1VglX6NBKOAPXCuEgry_N7igWUWzcekloWJD5rcrKzxzDAtzz7EUmb8Mmakj-O3f1kMjVHVhiHna9TiMuQstWSLO3wjdcrCeVBKztOVC6XvQj3LlPGvcmN-4ogf45ibFIxfdBM3im0yRtzCjSULg91JBRgScWh0OItfTE_ggLijPBj00OWRNHUqBxUD49zPDxtsWvEGmNB5mWIyOJTYsFhU-hMdr3Mtz6JT-w8io',
-    link: '/boutiques/the-archive',
+    link: '/store/Acne%20Studio',
   },
   {
     id: 6,

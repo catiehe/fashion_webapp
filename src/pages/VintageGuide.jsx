@@ -14,7 +14,7 @@ const stores = [
       { label: 'Vintage', filled: true },
     ],
     img: 'https://lh3.googleusercontent.com/aida-public/AB6AXuD7u1UIy9GcJRxTt4Kav-miV1O_GHHMZIXMHhN6SrCVRtAkJto5cJzZx9DbUlHYGBOm-oLLFPTz9Ocww83yVUu8wNIkL2PraYia7hBcS_h4O_3tI8DRmeaxonwIEjpqvKOJhT8X5MX6_RQ5PNHggq7WBsxjvbIWigxhD9wxQ0qQkXHCA95z0pQWMIzZmMJfmOYYjbo_Qx0sX7jQO1k3_Y1j0yJYjrGFaHLlBP4PaJBDL4kz8If0ncauLr7jvaNJrhlzPTmTKOaOwFo',
-    link: '/boutiques/the-archive',
+    link: '/store/Acne%20Studio',
   },
   {
     name: 'James Veloria',
