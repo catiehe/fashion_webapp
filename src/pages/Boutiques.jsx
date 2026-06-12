@@ -49,9 +49,9 @@ export default function Boutiques() {
                   className="group bg-pure-white p-8 rounded-xl border border-rich-black/10 hover:border-rich-black/40 transition-all duration-300 text-left hover:shadow-lg"
                 >
                   <div className="aspect-square overflow-hidden rounded-lg mb-6 bg-ice-blue">
-                    {store.image?.asset?.url && (
+                    {(store.image?.asset?.url || store.gallery?.[0]?.imageUrl) && (
                       <img
-                        src={store.image.asset.url}
+                        src={store.image?.asset?.url || store.gallery[0].imageUrl}
                         alt={store.name}
                         className="w-full h-full object-cover grayscale group-hover:grayscale-0 transition-all duration-500"
                       />

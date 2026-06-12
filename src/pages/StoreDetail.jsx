@@ -3,6 +3,14 @@ import { useParams, useNavigate } from 'react-router-dom'
 import Navbar from '../components/Navbar'
 import { getStore, getAllStores } from '../sanity'
 
+const FALLBACK_GALLERY = [
+  { url: 'https://lh3.googleusercontent.com/aida-public/AB6AXuCGys4jeAeA2uhFkgP7iTyxLqS1HyI2r427fN_RDrzCBowx6DYiQU-xxqcOikR5LzYomt28OzkZWJGO_rudS3EYkCP3x8OUpAE86PmRsBAQ40EZKJmx0wg5FNk46IVNxdC5ElsVC5gHHR3rIO_myVUqGo5avAzMWIHC0unJEMTpzbPgbWnvTei8A4CwRb0rwjCa6PUyJMBkbXKROeBjtBqpl6aUYmLWTBk5eaWCBkupV1L1ZJbpsmXfldjQH-aMs2XINsfl5gciidg', caption: 'Boutique Interior' },
+  { url: 'https://lh3.googleusercontent.com/aida-public/AB6AXuDN9NDKf_egDEKUN9-mu416qBMWpvwCzMAeW5mnWY6-2i2fN4NflUiAy29wJNjLfrXwxQ4i1-z0__-EbOyKr-zWmb1A2ysK-8Jg20EfPbWNHH0bVwqkxhJj6qjGUVS_4tfphIGDkhxmxv8Bsvg5Wg5HriSefKw-SfM72YxVJ_1WsT6P5A3nvrq4RJuf3-pOWW_EYGLYtQ18q-iEYvItkNRFonCoWJG-yMYli9YgfNG6Zg_KSpkR46KZCXWeDg8EaFxmmz5T3aSKnRc', caption: 'Interior Detail' },
+  { url: 'https://lh3.googleusercontent.com/aida-public/AB6AXuCcZ6tUdpwyL5WvTNDFZ2W1dblI22qlHljAtPFwRsvDskDwDTZpKHcze1XmELUV0HEpu6tgOSXvhiRQ_nCbRQBxitGH0bs0uFalguvV2V3HPSM9DeG7lGXHU3_kyizj0-_hD3M0PlPkDydkkIqhsyIvQJkln_7lb7TU4x1X-3CiKyozcQvJKURm6ZxVJqbMTxJppwKFpug9cATYvH5NsusuRw6Me0Af1VM9nSZXgDf4PeTiQkkEwKkqxKjyjYp4Ot9dstuITIN2w08', caption: 'Product Detail' },
+  { url: 'https://lh3.googleusercontent.com/aida-public/AB6AXuD7u1UIy9GcJRxTt4Kav-miV1O_GHHMZIXMHhN6SrCVRtAkJto5cJzZx9DbUlHYGBOm-oLLFPTz9Ocww83yVUu8wNIkL2PraYia7hBcS_h4O_3tI8DRmeaxonwIEjpqvKOJhT8X5MX6_RQ5PNHggq7WBsxjvbIWigxhD9wxQ0qQkXHCA95z0pQWMIzZmMJfmOYYjbo_Qx0sX7jQO1k3_Y1j0yJYjrGFaHLlBP4PaJBDL4kz8If0ncauLr7jvaNJrhlzPTmTKOaOwFo', caption: 'Gallery' },
+  { url: 'https://lh3.googleusercontent.com/aida-public/AB6AXuDalh5ifSrU1j-4rwjOd2XcqLZm4p8WiQ8hQZyQtvraOIeig11q0dzsenPRFNbPfoYsjDr9ebJAJ3xjAPOqrRfztnoZUVB1-nDOuar3Kte1LcEj_NvP7ByHuo6w6b5EUGJREKDzW0D6MYmn8U24_saxCdDAFewJoX7ZO-3WYiaadAUgox5heTm1QXhzYKTNzunf7zDr8N5qs7oPW0r9Zt8QoAkRA7HDCl3FiJJ1Jd3Z1Q_DuTUsB0LFTq63_joSyX8S_ula8gunNHo', caption: 'Detail Shot' },
+]
+
 const nearbyStores = [
   {
     name: 'Object & Found',
@@ -29,42 +37,46 @@ export default function StoreDetail() {
   const navigate = useNavigate()
   const [store, setStore] = useState(null)
   const [loading, setLoading] = useState(true)
-  const [embeds, setEmbeds] = useState([])
   const [allStores, setAllStores] = useState([])
 
   useEffect(() => {
     const fetchStore = async () => {
+      setLoading(true)
       try {
         const storeData = await getStore(storeName)
-        setStore(storeData)
-
-        if (storeData?.socialPosts) {
-          setEmbeds(storeData.socialPosts)
-
-          // Reload TikTok embed script after data loads
-          setTimeout(() => {
-            if (window.tiktok && window.tiktok.embed) {
-              window.tiktok.embed.process()
-            }
-          }, 500)
-        }
+        setStore(storeData || null)
       } catch (error) {
         console.error('Error fetching store:', error)
+        setStore(null)
       } finally {
         setLoading(false)
       }
     }
 
-    fetchStore()
-
-    // Load TikTok's embed script
-    if (!window.tiktok) {
-      const script = document.createElement('script')
-      script.src = 'https://www.tiktok.com/embed.js'
-      script.async = true
-      document.body.appendChild(script)
+    if (storeName) {
+      fetchStore()
+    } else {
+      setStore(null)
+      setLoading(false)
     }
   }, [storeName])
+
+  // Retry calling TikTok's embed processor every 300ms until it's ready.
+  // This handles the race between the script loading, store data arriving, and the DOM rendering.
+  useEffect(() => {
+    if (!store?.socialPosts?.length) return
+    let attempts = 0
+    const interval = setInterval(() => {
+      attempts++
+      if (window.tiktok?.embed) {
+        window.tiktok.embed.process()
+        clearInterval(interval)
+      } else if (attempts >= 30) {
+        clearInterval(interval)
+      }
+    }, 300)
+    return () => clearInterval(interval)
+  }, [store?.socialPosts])
 
   useEffect(() => {
     const fetchStores = async () => {
@@ -78,7 +90,9 @@ export default function StoreDetail() {
     fetchStores()
   }, [])
 
+  // Re-run scroll animations after store data loads so all sections animate in
   useEffect(() => {
+    if (loading) return
     const observer = new IntersectionObserver(
       (entries) => {
         entries.forEach((entry) => {
@@ -95,7 +109,19 @@ export default function StoreDetail() {
       observer.observe(el)
     })
     return () => observer.disconnect()
-  }, [])
+  }, [store, loading])
+
+  // Pick a gallery image from Sanity if available, otherwise use a fallback placeholder
+  const getGalleryImage = (index) => {
+    const sanityImg = store?.gallery?.[index]
+    if (sanityImg?.imageUrl) return { url: sanityImg.imageUrl, caption: sanityImg.caption || 'Gallery image' }
+    return FALLBACK_GALLERY[index]
+  }
+
+  // Use the first sentence of the description as a hero pull-quote
+  const heroQuote = store?.description
+    ? `"${store.description.split('.')[0].trim()}."`
+    : '"A temple to the ephemeral beauty of 90s minimalism."'
 
   return (
     <>
@@ -110,9 +136,7 @@ export default function StoreDetail() {
           <select
             value={storeName || ''}
             onChange={(e) => {
-              if (e.target.value) {
-                navigate(`/store/${e.target.value}`)
-              }
+              if (e.target.value) navigate(`/store/${e.target.value}`)
             }}
             className="px-4 py-2 border border-rich-black/20 bg-pure-white rounded-lg font-body-lg text-rich-black cursor-pointer hover:border-rich-black/40 transition-colors"
           >
@@ -124,205 +148,358 @@ export default function StoreDetail() {
             ))}
           </select>
         </div>
-        {/* Hero Gallery */}
-        <section className="reveal-section px-edge-margin mt-12 relative">
-          <div className="absolute -left-12 top-0 select-none pointer-events-none z-0">
-            <span className="text-[300px] ghost-text leading-none uppercase font-bold">01</span>
-          </div>
-          <div className="grid grid-cols-12 gap-gutter relative z-10">
-            <div className="col-span-12 md:col-span-8 grid grid-cols-8 gap-4">
-              <div className="col-span-5 aspect-[4/5] overflow-hidden rounded-xl bg-pure-white">
-                <img
-                  alt="Boutique Interior"
-                  className="w-full h-full object-cover grayscale hover:grayscale-0 transition-all duration-1000"
-                  src="https://lh3.googleusercontent.com/aida-public/AB6AXuCGys4jeAeA2uhFkgP7iTyxLqS1HyI2r427fN_RDrzCBowx6DYiQU-xxqcOikR5LzYomt28OzkZWJGO_rudS3EYkCP3x8OUpAE86PmRsBAQ40EZKJmx0wg5FNk46IVNxdC5ElsVC5gHHR3rIO_myVUqGo5avAzMWIHC0unJEMTpzbPgbWnvTei8A4CwRb0rwjCa6PUyJMBkbXKROeBjtBqpl6aUYmLWTBk5eaWCBkupV1L1ZJbpsmXfldjQH-aMs2XINsfl5gciidg"
-                />
-              </div>
-              <div className="col-span-3 space-y-4">
-                <div className="aspect-square overflow-hidden rounded-xl bg-pure-white">
-                  <img
-                    alt="Metallic Sculpture Coil"
-                    className="w-full h-full object-cover grayscale hover:grayscale-0 transition-all duration-1000"
-                    src="https://lh3.googleusercontent.com/aida-public/AB6AXuDN9NDKf_egDEKUN9-mu416qBMWpvwCzMAeW5mnWY6-2i2fN4NflUiAy29wJNjLfrXwxQ4i1-z0__-EbOyKr-zWmb1A2ysK-8Jg20EfPbWNHH0bVwqkxhJj6qjGUVS_4tfphIGDkhxmxv8Bsvg5Wg5HriSefKw-SfM72YxVJ_1WsT6P5A3nvrq4RJuf3-pOWW_EYGLYtQ18q-iEYvItkNRFonCoWJG-yMYli9YgfNG6Zg_KSpkR46KZCXWeDg8EaFxmmz5T3aSKnRc"
-                  />
-                </div>
-                <div className="aspect-[3/4] overflow-hidden rounded-xl bg-pure-white">
-                  <img
-                    alt="Titanium Ring Detail"
-                    className="w-full h-full object-cover grayscale hover:grayscale-0 transition-all duration-1000"
-                    src="https://lh3.googleusercontent.com/aida-public/AB6AXuCcZ6tUdpwyL5WvTNDFZ2W1dblI22qlHljAtPFwRsvDskDwDTZpKHcze1XmELUV0HEpu6tgOSXvhiRQ_nCbRQBxitGH0bs0uFalguvV2V3HPSM9DeG7lGXHU3_kyizj0-_hD3M0PlPkDydkkIqhsyIvQJkln_7lb7TU4x1X-3CiKyozcQvJKURm6ZxVJqbMTxJppwKFpug9cATYvH5NsusuRw6Me0Af1VM9nSZXgDf4PeTiQkkEwKkqxKjyjYp4Ot9dstuITIN2w08"
-                  />
-                </div>
-              </div>
-            </div>
-            <div className="col-span-12 md:col-span-4 flex flex-col gap-4">
-              <div className="bg-pure-white p-10 rounded-xl">
-                <h2 className="font-headline-md text-headline-md leading-tight mb-6 text-rich-black italic">
-                  "A temple to the ephemeral beauty of 90s minimalism."
-                </h2>
-                <span className="font-label-caps text-label-caps opacity-40 uppercase tracking-widest text-xs">
-                  — THE ARCHIVE FOUNDER
-                </span>
-              </div>
-              <div className="flex-grow grid grid-cols-2 gap-4">
-                <div className="aspect-square overflow-hidden rounded-xl bg-pure-white">
-                  <img
-                    alt="Silver Ribbons"
-                    className="w-full h-full object-cover grayscale hover:grayscale-0 transition-all duration-1000"
-                    src="https://lh3.googleusercontent.com/aida-public/AB6AXuD7u1UIy9GcJRxTt4Kav-miV1O_GHHMZIXMHhN6SrCVRtAkJto5cJzZx9DbUlHYGBOm-oLLFPTz9Ocww83yVUu8wNIkL2PraYia7hBcS_h4O_3tI8DRmeaxonwIEjpqvKOJhT8X5MX6_RQ5PNHggq7WBsxjvbIWigxhD9wxQ0qQkXHCA95z0pQWMIzZmMJfmOYYjbo_Qx0sX7jQO1k3_Y1j0yJYjrGFaHLlBP4PaJBDL4kz8If0ncauLr7jvaNJrhlzPTmTKOaOwFo"
-                  />
-                </div>
-                <div className="aspect-square overflow-hidden rounded-xl bg-pure-white">
-                  <img
-                    alt="Detail Shot"
-                    className="w-full h-full object-cover grayscale hover:grayscale-0 transition-all duration-1000"
-                    src="https://lh3.googleusercontent.com/aida-public/AB6AXuDalh5ifSrU1j-4rwjOd2XcqLZm4p8WiQ8hQZyQtvraOIeig11q0dzsenPRFNbPfoYsjDr9ebJAJ3xjAPOqrRfztnoZUVB1-nDOuar3Kte1LcEj_NvP7ByHuo6w6b5EUGJREKDzW0D6MYmn8U24_saxCdDAFewJoX7ZO-3WYiaadAUgox5heTm1QXhzYKTNzunf7zDr8N5qs7oPW0r9Zt8QoAkRA7HDCl3FiJJ1Jd3Z1Q_DuTUsB0LFTq63_joSyX8S_ula8gunNHo"
-                  />
-                </div>
-              </div>
-            </div>
-          </div>
-        </section>
 
-        {/* Store Profile */}
-        <section className="reveal-section px-edge-margin mt-section-gap">
-          <div className="grid grid-cols-12 gap-gutter items-start border-t border-rich-black/10 pt-16">
-            {store && (
-              <>
+        {/* Loading state */}
+        {loading && (
+          <div className="px-edge-margin mt-32 flex flex-col items-center justify-center min-h-[50vh]">
+            <div className="w-12 h-12 border-2 border-rich-black border-t-transparent rounded-full animate-spin mb-8" />
+            <p className="font-label-caps uppercase tracking-widest text-rich-black/40 text-sm">Loading store...</p>
+          </div>
+        )}
+
+        {/* No store found */}
+        {!loading && !store && (
+          <div className="px-edge-margin mt-32 flex flex-col items-center justify-center min-h-[50vh] text-center">
+            <h2 className="font-headline-lg text-6xl uppercase text-rich-black mb-8">
+              {storeName ? 'Store not found' : 'Select a store'}
+            </h2>
+            <p className="font-body-lg text-xl text-rich-black/50 max-w-md">
+              {storeName
+                ? `We couldn't find "${storeName}". Please choose a store from the dropdown above.`
+                : 'Use the dropdown above to browse available stores.'}
+            </p>
+          </div>
+        )}
+
+        {/* Full store content — only renders when store data has loaded */}
+        {!loading && store && (
+          <>
+            {/* Hero Gallery */}
+            <section className="reveal-section px-edge-margin mt-12 relative">
+              <div className="absolute -left-12 top-0 select-none pointer-events-none z-0">
+                <span className="text-[300px] ghost-text leading-none uppercase font-bold">01</span>
+              </div>
+              <div className="grid grid-cols-12 gap-gutter relative z-10">
+                <div className="col-span-12 md:col-span-8 grid grid-cols-8 gap-4">
+                  <div className="col-span-5 aspect-[4/5] overflow-hidden rounded-xl bg-pure-white">
+                    <img
+                      alt={getGalleryImage(0).caption}
+                      className="w-full h-full object-cover grayscale hover:grayscale-0 transition-all duration-1000"
+                      src={getGalleryImage(0).url}
+                    />
+                  </div>
+                  <div className="col-span-3 space-y-4">
+                    <div className="aspect-square overflow-hidden rounded-xl bg-pure-white">
+                      <img
+                        alt={getGalleryImage(1).caption}
+                        className="w-full h-full object-cover grayscale hover:grayscale-0 transition-all duration-1000"
+                        src={getGalleryImage(1).url}
+                      />
+                    </div>
+                    <div className="aspect-[3/4] overflow-hidden rounded-xl bg-pure-white">
+                      <img
+                        alt={getGalleryImage(2).caption}
+                        className="w-full h-full object-cover grayscale hover:grayscale-0 transition-all duration-1000"
+                        src={getGalleryImage(2).url}
+                      />
+                    </div>
+                  </div>
+                </div>
+                <div className="col-span-12 md:col-span-4 flex flex-col gap-4">
+                  <div className="bg-pure-white p-10 rounded-xl">
+                    <h2 className="font-headline-md text-headline-md leading-tight mb-6 text-rich-black italic">
+                      {heroQuote}
+                    </h2>
+                    <span className="font-label-caps text-label-caps opacity-40 uppercase tracking-widest text-xs">
+                      — {store.name.toUpperCase()}
+                    </span>
+                  </div>
+                  <div className="flex-grow grid grid-cols-2 gap-4">
+                    <div className="aspect-square overflow-hidden rounded-xl bg-pure-white">
+                      <img
+                        alt={getGalleryImage(3).caption}
+                        className="w-full h-full object-cover grayscale hover:grayscale-0 transition-all duration-1000"
+                        src={getGalleryImage(3).url}
+                      />
+                    </div>
+                    <div className="aspect-square overflow-hidden rounded-xl bg-pure-white">
+                      <img
+                        alt={getGalleryImage(4).caption}
+                        className="w-full h-full object-cover grayscale hover:grayscale-0 transition-all duration-1000"
+                        src={getGalleryImage(4).url}
+                      />
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </section>
+
+            {/* Store Profile */}
+            <section className="reveal-section px-edge-margin mt-section-gap">
+              <div className="grid grid-cols-12 gap-gutter items-start border-t border-rich-black/10 pt-16">
                 <div className="col-span-12 md:col-span-7">
                   <div className="flex gap-4 mb-12">
                     <span className="px-4 py-1 border border-rich-black/20 text-label-caps uppercase tracking-tighter text-rich-black">02</span>
-                    <span className="px-4 py-1 bg-pure-white text-label-caps uppercase tracking-tighter text-rich-black rounded-full text-xs">{store.neighborhood}</span>
+                    {store.neighborhood && (
+                      <span className="px-4 py-1 bg-pure-white text-label-caps uppercase tracking-tighter text-rich-black rounded-full text-xs">{store.neighborhood}</span>
+                    )}
                   </div>
                   <h1 className="font-headline-xl text-headline-xl mb-12 uppercase text-rich-black">{store.name}</h1>
-                  <p className="font-headline-md text-3xl max-w-3xl leading-relaxed text-rich-black/80">
-                    {store.description || 'Curated boutique experience in NYC'}
-                  </p>
                 </div>
                 <div className="col-span-12 md:col-span-4 md:col-start-9 space-y-16 mt-12 md:mt-0">
-                  <div className="border-l-2 border-rich-black pl-8 py-2">
-                    <p className="font-label-caps text-label-caps opacity-40 uppercase mb-4 tracking-widest text-rich-black">Address</p>
-                    <p className="font-body-lg text-2xl text-rich-black">
-                      {store.address}
-                    </p>
-                  </div>
-                  <div className="border-l-2 border-rich-black pl-8 py-2">
-                    <p className="font-label-caps text-label-caps opacity-40 uppercase mb-4 tracking-widest text-rich-black">Hours</p>
-                    <p className="font-body-lg text-2xl text-rich-black">{store.hours || 'Daily: 11:00 AM — 7:00 PM'}</p>
-                  </div>
+                  {store.address && (
+                    <div className="border-l-2 border-rich-black pl-8 py-2">
+                      <p className="font-label-caps text-label-caps opacity-40 uppercase mb-4 tracking-widest text-rich-black">Address</p>
+                      <p className="font-body-lg text-2xl text-rich-black">{store.address}</p>
+                    </div>
+                  )}
+                  {store.hours && (
+                    <div className="border-l-2 border-rich-black pl-8 py-2">
+                      <p className="font-label-caps text-label-caps opacity-40 uppercase mb-4 tracking-widest text-rich-black">Hours</p>
+                      <p className="font-body-lg text-2xl text-rich-black">{store.hours}</p>
+                    </div>
+                  )}
+                  {(store.website || store.instagramHandle) && (
+                    <div className="border-l-2 border-rich-black pl-8 py-2">
+                      <p className="font-label-caps text-label-caps opacity-40 uppercase mb-4 tracking-widest text-rich-black">Links</p>
+                      <div className="space-y-4">
+                        {store.website && (
+                          <a
+                            href={store.website}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="block font-body-lg text-xl text-rich-black hover:opacity-50 transition-opacity underline underline-offset-4"
+                          >
+                            Visit Website
+                          </a>
+                        )}
+                        {store.instagramHandle && (
+                          <a
+                            href={`https://instagram.com/${store.instagramHandle.replace('@', '')}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="block font-body-lg text-xl text-rich-black hover:opacity-50 transition-opacity underline underline-offset-4"
+                          >
+                            @{store.instagramHandle.replace('@', '')}
+                          </a>
+                        )}
+                      </div>
+                    </div>
+                  )}
                   <button className="w-full bg-rich-black text-pure-white py-6 rounded-full font-label-caps uppercase tracking-widest hover:opacity-90 transition-opacity text-lg">
                     Request Appointment
                   </button>
                 </div>
-              </>
-            )}
-          </div>
-        </section>
+              </div>
+            </section>
 
-        {/* Editorial */}
-        <section className="reveal-section px-edge-margin mt-section-gap grid grid-cols-12 gap-gutter relative">
-          <div className="absolute -right-24 top-0 select-none pointer-events-none z-0">
-            <span className="text-[350px] ghost-text uppercase leading-none font-bold">03</span>
-          </div>
-          <div className="col-span-12 md:col-span-6 space-y-12 py-12 relative z-10">
-            <h3 className="font-label-caps text-label-caps uppercase tracking-[0.3em] flex items-center gap-6 text-rich-black">
-              <span className="w-20 h-px bg-rich-black inline-block"></span>
-              Field Notes
-            </h3>
-            <div className="font-body-lg text-2xl leading-relaxed text-rich-black/70 space-y-10 max-w-xl">
-              <p>
-                Walking into The Archive is less like entering a retail space and more like stepping into a gallery of fashion history. The curation here is surgical—focused predominantly on the 1990s and early 2000s era of Antwerp Six and Japanese minimalism.
-              </p>
-              <p>
-                The staff possesses an encyclopedic knowledge of fabric compositions and collection years, often identifying a piece's provenance before you've even touched the tag. It's a quiet space; the high ceilings of the SoHo loft absorb the city's frantic hum.
-              </p>
-            </div>
-          </div>
-          <div className="col-span-12 md:col-span-5 md:col-start-8 bg-rich-black text-pure-white p-16 flex flex-col justify-between rounded-xl relative z-10">
-            <div>
-              <h3 className="font-label-caps text-label-caps uppercase tracking-[0.4em] mb-20 opacity-40">The Metric</h3>
-              <div className="divide-y divide-pure-white/10">
-                {[
-                  { label: 'Vibe', score: '9.5', color: '' },
-                  { label: 'Range', score: '8.0', color: '' },
-                  { label: 'Discovery', score: '10.', color: 'text-ice-blue' },
-                ].map(({ label, score, color }) => (
-                  <div key={label} className="flex justify-between items-baseline py-8 group border-b border-pure-white/10">
-                    <span className={`font-label-caps text-label-caps opacity-60 uppercase ${color}`}>{label}</span>
-                    <span className={`font-headline-lg text-8xl transition-transform group-hover:scale-105 ${color}`}>{score}</span>
+            {/* Field Notes */}
+            <section className="reveal-section px-edge-margin mt-section-gap grid grid-cols-12 gap-gutter relative">
+              <div className="absolute -right-24 top-0 select-none pointer-events-none z-0">
+                <span className="text-[350px] ghost-text uppercase leading-none font-bold">03</span>
+              </div>
+              <div className="col-span-12 md:col-span-6 space-y-12 py-12 relative z-10">
+                <h3 className="font-label-caps text-label-caps uppercase tracking-[0.3em] flex items-center gap-6 text-rich-black">
+                  <span className="w-20 h-px bg-rich-black inline-block"></span>
+                  Field Notes
+                </h3>
+                <div className="font-body-lg text-2xl leading-relaxed text-rich-black/70 max-w-xl">
+                  {store.description ? (
+                    <p>{store.description}</p>
+                  ) : (
+                    <p className="opacity-40 italic">No field notes available yet.</p>
+                  )}
+                </div>
+              </div>
+              <div className="col-span-12 md:col-span-5 md:col-start-8 bg-rich-black text-pure-white p-16 flex flex-col justify-between rounded-xl relative z-10">
+                <div>
+                  <h3 className="font-label-caps text-label-caps uppercase tracking-[0.4em] mb-20 opacity-40">The Metric</h3>
+                  <div className="divide-y divide-pure-white/10">
+                    {[
+                      { label: 'Vibe', score: '9.5', color: '' },
+                      { label: 'Range', score: '8.0', color: '' },
+                      { label: 'Discovery', score: '10.', color: 'text-ice-blue' },
+                    ].map(({ label, score, color }) => (
+                      <div key={label} className="flex justify-between items-baseline py-8 group border-b border-pure-white/10">
+                        <span className={`font-label-caps text-label-caps opacity-60 uppercase ${color}`}>{label}</span>
+                        <span className={`font-headline-lg text-8xl transition-transform group-hover:scale-105 ${color}`}>{score}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+                <p className="mt-20 font-caption italic opacity-40 text-sm">
+                  *Scored based on proprietary editorial standards for authenticity and rarity.
+                </p>
+              </div>
+            </section>
+
+            {/* Best Sellers — only shows if the store has products in Sanity */}
+            {store.products?.length > 0 && (
+              <section className="reveal-section px-edge-margin mt-section-gap">
+                <div className="border-t border-rich-black/10 pt-16 mb-16">
+                  <h3 className="font-label-caps text-label-caps uppercase tracking-[0.3em] flex items-center gap-6 text-rich-black">
+                    <span className="w-20 h-px bg-rich-black inline-block"></span>
+                    Best Sellers
+                  </h3>
+                </div>
+                <div className="grid grid-cols-12 gap-gutter">
+                  {store.products.map((product, idx) => (
+                    <div key={idx} className="col-span-12 md:col-span-6 lg:col-span-4 group">
+                      {product.productImages?.[0]?.imageUrl && (
+                        <div className="aspect-[3/4] overflow-hidden rounded-xl bg-pure-white mb-6">
+                          <img
+                            src={product.productImages[0].imageUrl}
+                            alt={product.name}
+                            className="w-full h-full object-cover grayscale group-hover:grayscale-0 group-hover:scale-105 transition-all duration-700"
+                          />
+                        </div>
+                      )}
+                      <div className="space-y-2">
+                        {product.name && (
+                          <h4 className="font-headline-md text-2xl uppercase tracking-tighter text-rich-black">{product.name}</h4>
+                        )}
+                        {product.price && (
+                          <p className="font-body-lg text-xl text-rich-black/60">{product.price}</p>
+                        )}
+                        <div className="flex flex-wrap gap-3 mt-3">
+                          {product.sizes && (
+                            <span className="font-label-caps text-xs uppercase tracking-widest text-rich-black/40 border border-rich-black/20 px-3 py-1 rounded-full">
+                              Sizes: {product.sizes}
+                            </span>
+                          )}
+                          {product.colors && (
+                            <span className="font-label-caps text-xs uppercase tracking-widest text-rich-black/40 border border-rich-black/20 px-3 py-1 rounded-full">
+                              {product.colors}
+                            </span>
+                          )}
+                          {product.material && (
+                            <span className="font-label-caps text-xs uppercase tracking-widest text-rich-black/40 border border-rich-black/20 px-3 py-1 rounded-full">
+                              {product.material}
+                            </span>
+                          )}
+                        </div>
+                        {product.productUrl && (
+                          <a
+                            href={product.productUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="inline-block mt-4 font-label-caps text-xs uppercase tracking-widest text-rich-black underline underline-offset-4 hover:opacity-50 transition-opacity"
+                          >
+                            View Product
+                          </a>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </section>
+            )}
+
+            {/* Reviews — only shows if the store has reviews in Sanity */}
+            {store.reviews?.length > 0 && (
+              <section className="reveal-section px-edge-margin mt-section-gap">
+                <div className="border-t border-rich-black/10 pt-16 mb-16">
+                  <h3 className="font-label-caps text-label-caps uppercase tracking-[0.3em] flex items-center gap-6 text-rich-black">
+                    <span className="w-20 h-px bg-rich-black inline-block"></span>
+                    What People Are Saying
+                  </h3>
+                </div>
+                <div className="grid grid-cols-12 gap-gutter">
+                  {store.reviews.map((review, idx) => (
+                    <div key={idx} className="col-span-12 md:col-span-6 bg-pure-white p-10 rounded-xl">
+                      <div className="flex justify-between items-start mb-8">
+                        {review.rating && (
+                          <span className="font-headline-md text-4xl text-rich-black">{review.rating}</span>
+                        )}
+                        {review.source && (
+                          <span className="font-label-caps text-xs uppercase tracking-widest text-rich-black/40 border border-rich-black/20 px-3 py-1 rounded-full">
+                            {review.source}
+                          </span>
+                        )}
+                      </div>
+                      {review.reviewText && (
+                        <p className="font-body-lg text-xl leading-relaxed text-rich-black/70 mb-8">
+                          "{review.reviewText}"
+                        </p>
+                      )}
+                      {review.reviewerName && (
+                        <p className="font-label-caps text-xs uppercase tracking-widest text-rich-black/40">
+                          — {review.reviewerName}
+                        </p>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </section>
+            )}
+
+            {/* What Creators Are Saying — only shows if there are social posts */}
+            {store.socialPosts?.length > 0 && (
+              <section className="reveal-section px-edge-margin mt-section-gap relative">
+                <h3 className="font-label-caps text-label-caps uppercase tracking-[0.3em] mb-16 text-rich-black">
+                  What Creators Are Saying
+                </h3>
+                <div className="grid grid-cols-12 gap-gutter">
+                  {store.socialPosts.map((embed, idx) => (
+                    <div key={idx} className="col-span-12 md:col-span-6 lg:col-span-5 bg-pure-white rounded-xl overflow-hidden p-6">
+                      <div
+                        className="w-full overflow-x-auto"
+                        dangerouslySetInnerHTML={{ __html: embed.embedHtml }}
+                      />
+                    </div>
+                  ))}
+                </div>
+              </section>
+            )}
+
+            {/* Map Interlude */}
+            <section className="reveal-section mt-section-gap w-full h-[600px] bg-pure-white relative overflow-hidden grayscale contrast-125">
+              <img
+                className="w-full h-full object-cover opacity-60"
+                alt="Stylized map of SoHo"
+                src="https://lh3.googleusercontent.com/aida-public/AB6AXuAnWeMfqAVzpl5HbGaHBZeegQgdR4TUIgqnbKiYIFFrixN6WOyw2_ugr2s64orBECiDfmCxdp8oFlzIfXm_1u3piKLI5os0xQx6wTZn65M5wB0aMEf2Vf51rc5Zypm9khHwv4TTurYtiz1Kty9F6Use0SQxcOYuzKld3amx9H6mfrMHELkTNFN08EW5W9XVdqfUPg_9K3vrUFuSMmLkkQWz85sug_fNtMmLcR-scpC4ypEMBuLvMgRF5L7qctZARJ0dS6C03kxH1Mc"
+              />
+              <div className="absolute inset-0 flex items-center justify-center">
+                <div className="w-16 h-16 border-2 border-rich-black flex items-center justify-center animate-pulse">
+                  <div className="w-4 h-4 bg-rich-black rounded-full"></div>
+                </div>
+              </div>
+            </section>
+
+            {/* Nearby Stores */}
+            <section className="reveal-section px-edge-margin mt-section-gap mb-section-gap relative">
+              <div className="absolute -left-12 -top-12 select-none pointer-events-none z-0">
+                <span className="text-[300px] ghost-text uppercase leading-none font-bold">04</span>
+              </div>
+              <h3 className="font-label-caps text-label-caps mb-24 uppercase tracking-[0.5em] text-center text-rich-black relative z-10">
+                Satellite Explorations
+              </h3>
+              <div className="grid grid-cols-12 gap-gutter relative z-10">
+                {nearbyStores.map((nearby, i) => (
+                  <div
+                    key={nearby.name}
+                    className={`col-span-12 md:col-span-4 group cursor-pointer bg-pure-white p-6 rounded-xl ${i === 1 ? 'mt-24 md:mt-0' : ''} ${i === 2 ? 'mt-48 md:mt-0' : ''}`}
+                  >
+                    <div className="aspect-[3/4] overflow-hidden mb-10 bg-ice-blue rounded-lg">
+                      <img
+                        className="w-full h-full object-cover grayscale group-hover:grayscale-0 group-hover:scale-105 transition-all duration-700"
+                        src={nearby.img}
+                        alt={nearby.name}
+                      />
+                    </div>
+                    <div className="flex justify-between items-end">
+                      <div>
+                        <p className="font-label-caps text-sm text-rich-black/40 uppercase mb-2">{nearby.type}</p>
+                        <h4 className="font-headline-md text-3xl uppercase tracking-tighter text-rich-black">{nearby.name}</h4>
+                      </div>
+                      <span className="font-label-caps text-rich-black/40">{nearby.distance}</span>
+                    </div>
                   </div>
                 ))}
               </div>
-            </div>
-            <p className="mt-20 font-caption italic opacity-40 text-sm">
-              *Scored based on proprietary editorial standards for authenticity and rarity.
-            </p>
-          </div>
-        </section>
-
-        {/* What Creators Are Saying */}
-        <section className="reveal-section px-edge-margin mt-section-gap relative">
-          <h3 className="font-label-caps text-label-caps uppercase tracking-[0.3em] mb-16 text-rich-black">
-            What Creators Are Saying
-          </h3>
-          <div className="grid grid-cols-12 gap-gutter">
-            {embeds.map((embed, idx) => (
-              <div key={idx} className="col-span-12 md:col-span-6 lg:col-span-5 bg-pure-white rounded-xl overflow-hidden p-6">
-                <div
-                  className="w-full overflow-x-auto"
-                  dangerouslySetInnerHTML={{ __html: embed.embedHtml }}
-                />
-              </div>
-            ))}
-          </div>
-        </section>
-
-        {/* Map Interlude */}
-        <section className="reveal-section mt-section-gap w-full h-[600px] bg-pure-white relative overflow-hidden grayscale contrast-125">
-          <img
-            className="w-full h-full object-cover opacity-60"
-            alt="Stylized map of SoHo"
-            src="https://lh3.googleusercontent.com/aida-public/AB6AXuAnWeMfqAVzpl5HbGaHBZeegQgdR4TUIgqnbKiYIFFrixN6WOyw2_ugr2s64orBECiDfmCxdp8oFlzIfXm_1u3piKLI5os0xQx6wTZn65M5wB0aMEf2Vf51rc5Zypm9khHwv4TTurYtiz1Kty9F6Use0SQxcOYuzKld3amx9H6mfrMHELkTNFN08EW5W9XVdqfUPg_9K3vrUFuSMmLkkQWz85sug_fNtMmLcR-scpC4ypEMBuLvMgRF5L7qctZARJ0dS6C03kxH1Mc"
-          />
-          <div className="absolute inset-0 flex items-center justify-center">
-            <div className="w-16 h-16 border-2 border-rich-black flex items-center justify-center animate-pulse">
-              <div className="w-4 h-4 bg-rich-black rounded-full"></div>
-            </div>
-          </div>
-        </section>
-
-        {/* Nearby Stores */}
-        <section className="reveal-section px-edge-margin mt-section-gap mb-section-gap relative">
-          <div className="absolute -left-12 -top-12 select-none pointer-events-none z-0">
-            <span className="text-[300px] ghost-text uppercase leading-none font-bold">04</span>
-          </div>
-          <h3 className="font-label-caps text-label-caps mb-24 uppercase tracking-[0.5em] text-center text-rich-black relative z-10">
-            Satellite Explorations
-          </h3>
-          <div className="grid grid-cols-12 gap-gutter relative z-10">
-            {nearbyStores.map((store, i) => (
-              <div
-                key={store.name}
-                className={`col-span-12 md:col-span-4 group cursor-pointer bg-pure-white p-6 rounded-xl ${i === 1 ? 'mt-24 md:mt-0' : ''} ${i === 2 ? 'mt-48 md:mt-0' : ''}`}
-              >
-                <div className="aspect-[3/4] overflow-hidden mb-10 bg-ice-blue rounded-lg">
-                  <img
-                    className="w-full h-full object-cover grayscale group-hover:grayscale-0 group-hover:scale-105 transition-all duration-700"
-                    src={store.img}
-                    alt={store.name}
-                  />
-                </div>
-                <div className="flex justify-between items-end">
-                  <div>
-                    <p className="font-label-caps text-sm text-rich-black/40 uppercase mb-2">{store.type}</p>
-                    <h4 className="font-headline-md text-3xl uppercase tracking-tighter text-rich-black">{store.name}</h4>
-                  </div>
-                  <span className="font-label-caps text-rich-black/40">{store.distance}</span>
-                </div>
-              </div>
-            ))}
-          </div>
-        </section>
+            </section>
+          </>
+        )}
       </main>
 
       {/* Footer */}

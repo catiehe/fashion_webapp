@@ -9,11 +9,31 @@ export const client = createClient({
 })
 
 export const getStore = async (storeName) => {
-  const query = `*[_type == "store" && name == $storeName][0]`
+  const query = `*[_type == "store" && name == $storeName][0] {
+    _id,
+    name,
+    neighborhood,
+    address,
+    website,
+    instagramHandle,
+    description,
+    hours,
+    image { asset -> { url } },
+    gallery,
+    products,
+    reviews,
+    socialPosts
+  }`
   return client.fetch(query, { storeName })
 }
 
 export const getAllStores = async () => {
-  const query = `*[_type == "store"] | order(name)`
+  const query = `*[_type == "store"] | order(name) {
+    _id,
+    name,
+    neighborhood,
+    image { asset -> { url } },
+    gallery
+  }`
   return client.fetch(query)
 }
