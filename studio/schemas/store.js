@@ -22,6 +22,16 @@ export const storeSchema = defineType({
       type: 'string',
     }),
     defineField({
+      name: 'website',
+      title: 'Website URL',
+      type: 'url',
+    }),
+    defineField({
+      name: 'instagramHandle',
+      title: 'Instagram Handle',
+      type: 'string',
+    }),
+    defineField({
       name: 'description',
       title: 'Description',
       type: 'text',
@@ -39,8 +49,69 @@ export const storeSchema = defineType({
       options: { hotspot: true },
     }),
     defineField({
+      name: 'gallery',
+      title: 'Image Gallery (Lookbook / Homepage)',
+      type: 'array',
+      of: [
+        {
+          type: 'object',
+          fields: [
+            defineField({ name: 'imageUrl', title: 'Image URL', type: 'url' }),
+            defineField({ name: 'caption', title: 'Caption', type: 'string' }),
+          ],
+        },
+      ],
+    }),
+    defineField({
+      name: 'products',
+      title: 'Best Sellers',
+      type: 'array',
+      of: [
+        {
+          type: 'object',
+          fields: [
+            defineField({ name: 'name', title: 'Product Name', type: 'string' }),
+            defineField({ name: 'price', title: 'Price', type: 'string' }),
+            defineField({ name: 'sizes', title: 'Sizes', type: 'string' }),
+            defineField({ name: 'colors', title: 'Colors', type: 'string' }),
+            defineField({ name: 'material', title: 'Material / Content', type: 'string' }),
+            defineField({ name: 'productUrl', title: 'Product Page URL', type: 'url' }),
+            defineField({
+              name: 'productImages',
+              title: 'Product Images',
+              type: 'array',
+              of: [
+                {
+                  type: 'object',
+                  fields: [
+                    defineField({ name: 'imageUrl', title: 'Image URL', type: 'url' }),
+                  ],
+                },
+              ],
+            }),
+          ],
+        },
+      ],
+    }),
+    defineField({
+      name: 'reviews',
+      title: 'Reviews',
+      type: 'array',
+      of: [
+        {
+          type: 'object',
+          fields: [
+            defineField({ name: 'source', title: 'Source (Yelp, Google, etc.)', type: 'string' }),
+            defineField({ name: 'rating', title: 'Rating', type: 'string' }),
+            defineField({ name: 'reviewText', title: 'Review Text', type: 'text' }),
+            defineField({ name: 'reviewerName', title: 'Reviewer Name', type: 'string' }),
+          ],
+        },
+      ],
+    }),
+    defineField({
       name: 'socialPosts',
-      title: 'Social Posts (TikTok / Instagram)',
+      title: 'TikTok / Instagram Posts',
       type: 'array',
       of: [
         {
@@ -50,6 +121,7 @@ export const storeSchema = defineType({
             defineField({ name: 'postUrl', title: 'Post URL', type: 'url' }),
             defineField({ name: 'embedHtml', title: 'Embed HTML', type: 'text' }),
             defineField({ name: 'authorHandle', title: 'Author Handle', type: 'string' }),
+            defineField({ name: 'caption', title: 'Caption / Description', type: 'string' }),
             defineField({ name: 'addedAt', title: 'Date Added', type: 'datetime' }),
           ],
         },
