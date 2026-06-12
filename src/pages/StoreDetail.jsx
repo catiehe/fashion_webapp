@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
-import { useParams } from 'react-router-dom'
+import { useParams, useNavigate } from 'react-router-dom'
 import Navbar from '../components/Navbar'
-import { getStore } from '../sanity'
+import { getStore, getAllStores } from '../sanity'
 
 const nearbyStores = [
   {
@@ -26,9 +26,11 @@ const nearbyStores = [
 
 export default function StoreDetail() {
   const { storeName } = useParams()
+  const navigate = useNavigate()
   const [store, setStore] = useState(null)
   const [loading, setLoading] = useState(true)
   const [embeds, setEmbeds] = useState([])
+  const [allStores, setAllStores] = useState([])
 
   useEffect(() => {
     const fetchStore = async () => {
@@ -65,6 +67,18 @@ export default function StoreDetail() {
   }, [storeName])
 
   useEffect(() => {
+    const fetchStores = async () => {
+      try {
+        const stores = await getAllStores()
+        setAllStores(stores || [])
+      } catch (error) {
+        console.error('Error fetching stores:', error)
+      }
+    }
+    fetchStores()
+  }, [])
+
+  useEffect(() => {
     const observer = new IntersectionObserver(
       (entries) => {
         entries.forEach((entry) => {
@@ -88,6 +102,28 @@ export default function StoreDetail() {
       <Navbar />
 
       <main className="max-w-container-max mx-auto overflow-hidden">
+        {/* Store Selector Dropdown */}
+        <div className="px-edge-margin mt-8 flex items-center gap-4">
+          <label className="font-label-caps text-label-caps uppercase tracking-widest text-rich-black text-sm">
+            Select Store:
+          </label>
+          <select
+            value={storeName || ''}
+            onChange={(e) => {
+              if (e.target.value) {
+                navigate(`/store/${e.target.value}`)
+              }
+            }}
+            className="px-4 py-2 border border-rich-black/20 bg-pure-white rounded-lg font-body-lg text-rich-black cursor-pointer hover:border-rich-black/40 transition-colors"
+          >
+            <option value="">Choose a store...</option>
+            {allStores.map((s) => (
+              <option key={s._id} value={s.name}>
+                {s.name}
+              </option>
+            ))}
+          </select>
+        </div>
         {/* Hero Gallery */}
         <section className="reveal-section px-edge-margin mt-12 relative">
           <div className="absolute -left-12 top-0 select-none pointer-events-none z-0">
@@ -234,7 +270,7 @@ export default function StoreDetail() {
               <div key={idx} className="col-span-12 md:col-span-4 bg-pure-white rounded-xl overflow-hidden">
                 <div
                   className="w-full"
-                  dangerouslySetInnerHTML={{ __html: embed.html }}
+                  dangerouslySetInnerHTML={{ __html: embed.embedHtml }}
                 />
               </div>
             ))}

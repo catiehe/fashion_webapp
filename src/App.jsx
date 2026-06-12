@@ -1,5 +1,6 @@
 import { Routes, Route } from 'react-router-dom'
 import Discovery from './pages/Discovery'
+import Boutiques from './pages/Boutiques'
 import StoreDetail from './pages/StoreDetail'
 import StyleMap from './pages/StyleMap'
 import VintageGuide from './pages/VintageGuide'
@@ -9,6 +10,7 @@ export default function App() {
     <Routes>
       <Route path="/" element={<Discovery />} />
       <Route path="/map" element={<StyleMap />} />
+      <Route path="/boutiques" element={<Boutiques />} />
       <Route path="/store/:storeName" element={<StoreDetail />} />
       <Route path="/vintage" element={<VintageGuide />} />
     </Routes>
