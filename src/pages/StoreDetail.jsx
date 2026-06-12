@@ -61,22 +61,6 @@ export default function StoreDetail() {
     }
   }, [storeName])
 
-  // Retry calling TikTok's embed processor every 300ms until it's ready.
-  // This handles the race between the script loading, store data arriving, and the DOM rendering.
-  useEffect(() => {
-    if (!store?.socialPosts?.length) return
-    let attempts = 0
-    const interval = setInterval(() => {
-      attempts++
-      if (window.tiktok?.embed) {
-        window.tiktok.embed.process()
-        clearInterval(interval)
-      } else if (attempts >= 30) {
-        clearInterval(interval)
-      }
-    }, 300)
-    return () => clearInterval(interval)
-  }, [store?.socialPosts])
 
   useEffect(() => {
     const fetchStores = async () => {
@@ -440,14 +424,51 @@ export default function StoreDetail() {
                   What Creators Are Saying
                 </h3>
                 <div className="grid grid-cols-12 gap-gutter">
-                  {store.socialPosts.map((embed, idx) => (
-                    <div key={idx} className="col-span-12 md:col-span-6 lg:col-span-5 bg-pure-white rounded-xl overflow-hidden p-6">
-                      <div
-                        className="w-full overflow-x-auto"
-                        dangerouslySetInnerHTML={{ __html: embed.embedHtml }}
-                      />
-                    </div>
-                  ))}
+                  {store.socialPosts.map((post, idx) => {
+                    const isTikTok = post.platform?.toLowerCase() === 'tiktok' || post.postUrl?.includes('tiktok.com')
+                    const tikTokId = post.postUrl?.match(/\/video\/(\d+)/)?.[1]
+
+                    return (
+                      <div key={idx} className="col-span-12 md:col-span-6 bg-pure-white rounded-xl overflow-hidden p-6">
+                        {isTikTok && tikTokId ? (
+                          <iframe
+                            src={`https://www.tiktok.com/embed/v2/${tikTokId}`}
+                            className="w-full rounded-lg"
+                            style={{ minHeight: '700px', border: 'none' }}
+                            allowFullScreen
+                            allow="autoplay; encrypted-media"
+                            title={post.caption || 'TikTok video'}
+                          />
+                        ) : post.embedHtml ? (
+                          <div
+                            className="w-full overflow-x-auto"
+                            dangerouslySetInnerHTML={{ __html: post.embedHtml }}
+                          />
+                        ) : post.postUrl ? (
+                          <a
+                            href={post.postUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="block font-label-caps text-xs uppercase tracking-widest text-rich-black underline underline-offset-4 py-8"
+                          >
+                            View post →
+                          </a>
+                        ) : null}
+                        {(post.authorHandle || post.caption) && (
+                          <div className="mt-4 space-y-1">
+                            {post.authorHandle && (
+                              <p className="font-label-caps text-xs uppercase tracking-widest text-rich-black/40">
+                                @{post.authorHandle.replace('@', '')}
+                              </p>
+                            )}
+                            {post.caption && (
+                              <p className="font-body-lg text-sm text-rich-black/60">{post.caption}</p>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    )
+                  })}
                 </div>
               </section>
             )}
