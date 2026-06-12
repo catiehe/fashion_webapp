@@ -1,4 +1,4 @@
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import Navbar from '../components/Navbar'
 
@@ -23,7 +23,46 @@ const nearbyStores = [
   },
 ]
 
+// Hardcoded TikTok video URLs for testing
+const tiktokVideos = [
+  'https://www.tiktok.com/@alon_cameron/video/7478135319326674222',
+  'https://www.tiktok.com/@abbeywwwww/video/7237225757716745518',
+  'https://www.tiktok.com/@graceannryu/video/7069145495758703918',
+]
+
 export default function StoreDetail() {
+  const [embeds, setEmbeds] = useState([])
+
+  useEffect(() => {
+    // Fetch TikTok oEmbed data for each video
+    const fetchEmbeds = async () => {
+      const embedsData = []
+      for (const url of tiktokVideos) {
+        try {
+          const response = await fetch(`https://www.tiktok.com/oembed?url=${encodeURIComponent(url)}`)
+          const data = await response.json()
+          embedsData.push({
+            html: data.html,
+            author: data.author_name,
+            title: data.title,
+            url: url,
+          })
+        } catch (error) {
+          console.error('Error fetching TikTok embed:', error)
+        }
+      }
+      setEmbeds(embedsData)
+
+      // Load TikTok's embed script to render the embeds
+      const script = document.createElement('script')
+      script.src = 'https://www.tiktok.com/embed.js'
+      script.async = true
+      document.body.appendChild(script)
+    }
+
+    fetchEmbeds()
+  }, [])
+
   useEffect(() => {
     const observer = new IntersectionObserver(
       (entries) => {
@@ -178,6 +217,23 @@ export default function StoreDetail() {
             <p className="mt-20 font-caption italic opacity-40 text-sm">
               *Scored based on proprietary editorial standards for authenticity and rarity.
             </p>
+          </div>
+        </section>
+
+        {/* What Creators Are Saying */}
+        <section className="reveal-section px-edge-margin mt-section-gap relative">
+          <h3 className="font-label-caps text-label-caps uppercase tracking-[0.3em] mb-16 text-rich-black">
+            What Creators Are Saying
+          </h3>
+          <div className="grid grid-cols-12 gap-gutter">
+            {embeds.map((embed, idx) => (
+              <div key={idx} className="col-span-12 md:col-span-4 bg-pure-white rounded-xl overflow-hidden">
+                <div
+                  className="w-full"
+                  dangerouslySetInnerHTML={{ __html: embed.html }}
+                />
+              </div>
+            ))}
           </div>
         </section>
 
